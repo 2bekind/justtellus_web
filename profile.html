@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Just Tell Us</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .profile-header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            font-weight: bold;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .username {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #b0b0b0;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: #d0d0d0;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .emoji {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .profile-header {
+                padding: 20px;
+            }
+
+            .avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 32px;
+            }
+
+            .username {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <div class="avatar" id="avatar">
+                <span id="avatarInitial">U</span>
+            </div>
+            <div class="username" id="username">@username</div>
+        </div>
+
+        <div id="content">
+            <div class="loading">Загрузка данных...</div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Получаем данные пользователя из Telegram
+        const user = tg.initDataUnsafe?.user;
+        
+        // Функция для получения первой буквы имени
+        function getInitial(name) {
+            if (!name) return 'U';
+            return name.charAt(0).toUpperCase();
+        }
+
+        // Обновляем аватар и username
+        if (user) {
+            const avatarEl = document.getElementById('avatar');
+            const avatarInitial = document.getElementById('avatarInitial');
+            const usernameEl = document.getElementById('username');
+
+            if (user.photo_url) {
+                avatarEl.innerHTML = `<img src="${user.photo_url}" alt="Avatar">`;
+            } else {
+                avatarInitial.textContent = getInitial(user.first_name || user.username);
+            }
+
+            const displayName = user.username 
+                ? `@${user.username}` 
+                : (user.first_name || 'Пользователь');
+            usernameEl.textContent = displayName;
+        }
+
+        // Функция для загрузки статистики
+        async function loadStats() {
+            const content = document.getElementById('content');
+            
+            try {
+                const userId = user?.id;
+                if (!userId) {
+                    content.innerHTML = '<div class="loading">Ошибка: не удалось получить ID пользователя</div>';
+                    return;
+                }
+
+                // URL API endpoint (замените на ваш адрес)
+                // Для локальной разработки: http://localhost:5000
+                // Для продакшена: https://ваш-домен.com
+                const API_URL = 'http://localhost:5000'; // ИЗМЕНИТЕ НА ВАШ АДРЕС
+                
+                // Запрос к API
+                const response = await fetch(`${API_URL}/api/stats/${userId}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка загрузки данных');
+                }
+
+                const stats = {
+                    owner: data.owner,
+                    received: data.stats.received || 0,
+                    sent: data.stats.sent || 0,
+                    choosers: data.stats.choosers || 0,
+                    max_streak: data.stats.max_streak || 0
+                };
+
+                // Сохраняем в localStorage для офлайн режима
+                localStorage.setItem('bot_stats', JSON.stringify({
+                    userId: userId,
+                    ...stats,
+                    timestamp: Date.now()
+                }));
+
+                // Если это владелец, показываем полную статистику
+                let html = '';
+                
+                if (stats.owner) {
+                    html = `
+                        <div class="stats-section">
+                            <div class="section-title">только для тех кто владеет ботом</div>
+                            <div class="divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">✉️</span>полученные сообщения</span>
+                                <span class="stat-value">[${stats.received}]</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">🙏</span>выбирали тебя</span>
+                                <span class="stat-value">[${stats.choosers}]</span>
+                            </div>
+                        </div>
+                        <div class="stats-section">
+                            <div class="section-title">для всех</div>
+                            <div class="divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">🪶</span>отправленные сообщения</span>
+                                <span class="stat-value">[${stats.sent}]</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">🔥</span>самая долгая серия сообщений</span>
+                                <span class="stat-value">[${stats.max_streak}]</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    html = `
+                        <div class="stats-section">
+                            <div class="section-title">для всех</div>
+                            <div class="divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">🪶</span>отправленные сообщения</span>
+                                <span class="stat-value">[${stats.sent}]</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label"><span class="emoji">🔥</span>самая долгая серия сообщений</span>
+                                <span class="stat-value">[${stats.max_streak}]</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                
+                // Пытаемся загрузить из localStorage
+                const savedStats = localStorage.getItem('bot_stats');
+                if (savedStats) {
+                    try {
+                        const parsed = JSON.parse(savedStats);
+                        const stats = {
+                            owner: parsed.owner || false,
+                            received: parsed.received || 0,
+                            sent: parsed.sent || 0,
+                            choosers: parsed.choosers || 0,
+                            max_streak: parsed.max_streak || 0
+                        };
+                        
+                        // Показываем сохраненные данные
+                        let html = '';
+                        if (stats.owner) {
+                            html = `
+                                <div class="stats-section">
+                                    <div class="section-title">только для тех кто владеет ботом</div>
+                                    <div class="divider"></div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">✉️</span>полученные сообщения</span>
+                                        <span class="stat-value">[${stats.received}]</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">🙏</span>выбирали тебя</span>
+                                        <span class="stat-value">[${stats.choosers}]</span>
+                                    </div>
+                                </div>
+                                <div class="stats-section">
+                                    <div class="section-title">для всех</div>
+                                    <div class="divider"></div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">🪶</span>отправленные сообщения</span>
+                                        <span class="stat-value">[${stats.sent}]</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">🔥</span>самая долгая серия сообщений</span>
+                                        <span class="stat-value">[${stats.max_streak}]</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html = `
+                                <div class="stats-section">
+                                    <div class="section-title">для всех</div>
+                                    <div class="divider"></div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">🪶</span>отправленные сообщения</span>
+                                        <span class="stat-value">[${stats.sent}]</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label"><span class="emoji">🔥</span>самая долгая серия сообщений</span>
+                                        <span class="stat-value">[${stats.max_streak}]</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        content.innerHTML = html + '<div style="text-align: center; color: #888; margin-top: 20px; font-size: 12px;">Данные из кэша (API недоступен)</div>';
+                        return;
+                    } catch (e) {
+                        console.error('Ошибка парсинга сохраненных данных:', e);
+                    }
+                }
+                
+                content.innerHTML = '<div class="loading">Ошибка загрузки данных. Проверьте, что API сервер запущен.</div>';
+            }
+        }
+
+        // Загружаем статистику при загрузке страницы
+        loadStats();
+    </script>
+</body>
+</html>
+
