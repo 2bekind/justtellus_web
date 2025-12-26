@@ -200,10 +200,11 @@
                     return;
                 }
 
-                // URL API endpoint (замените на ваш адрес)
+                // URL API endpoint
                 // Для локальной разработки: http://localhost:5000
-                // Для продакшена: https://ваш-домен.com
-                const API_URL = 'http://localhost:5000'; // ИЗМЕНИТЕ НА ВАШ АДРЕС
+                // Для продакшена: укажите адрес вашего API сервера
+                // GitHub Pages не поддерживает серверные приложения, нужен отдельный хостинг для API
+                const API_URL = 'http://localhost:5000'; // ЗАМЕНИТЕ НА АДРЕС ВАШЕГО API СЕРВЕРА
                 
                 // Запрос к API
                 const response = await fetch(`${API_URL}/api/stats/${userId}`);
